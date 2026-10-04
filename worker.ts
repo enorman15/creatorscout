@@ -69,10 +69,13 @@ export class AppCronRoom extends CronRoom<Env> {
 export class AppJobRoom extends JobRoom<Env> {
   constructor(state: DurableObjectState, env: Env) {
     super(state, env, {
+      // Scans spend owner-billed credits, so ordinary users never enqueue
+      // from the socket — the `startScout` action enforces the daily cap and
+      // enqueues server-side. Only admins (the owner) can cancel/retry here.
       authorizeWrite: async (user) => {
         if (user.userId.startsWith('anon-')) return false
         const role = await resolveAppRole(env, user.userId)
-        return role === 'member' || role === 'admin'
+        return role === 'admin'
       },
     })
   }

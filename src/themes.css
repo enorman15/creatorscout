@@ -44,3 +44,33 @@
   --color-shell: #fafafa;
   --color-shell-panel: #ffffff;
 }
+
+/* Scout — Creator Scout's own theme. Near-black editorial dark with a single
+ * signal-lime accent; platform colors (YouTube red, TikTok cyan, Instagram
+ * pink) are the only other hues and appear only on platform badges. */
+[data-theme="scout"] {
+  color-scheme: dark;
+  --color-background: #0b0c0f;
+  --color-foreground: #ecebe6;
+  --color-card: #13151a;
+  --color-card-foreground: #ecebe6;
+  --color-popover: #15171d;
+  --color-popover-foreground: #ecebe6;
+  --color-primary: #d7ff3c;
+  --color-primary-foreground: #0b0c0f;
+  --color-secondary: #1b1e25;
+  --color-secondary-foreground: #ecebe6;
+  --color-muted: #1b1e25;
+  --color-muted-foreground: #8b8f99;
+  --color-accent: #20242c;
+  --color-accent-foreground: #ecebe6;
+  --color-destructive: #f05252;
+  --color-destructive-foreground: #ffffff;
+  --color-border: #23262e;
+  --color-input: #2a2e37;
+  --color-ring: #d7ff3c;
+  --shadow-card: 0 1px 0 0 rgba(255, 255, 255, 0.03) inset;
+  --shadow-card-hover: 0 0 0 1px rgba(215, 255, 60, 0.18);
+  --color-shell: #0b0c0f;
+  --color-shell-panel: #101217;
+}

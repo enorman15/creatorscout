@@ -25,25 +25,39 @@ export default function Landing() {
   return (
     <>
       <Seo {...seo} path="/" />
-      <div
-        data-testid="static-landing"
-        className="flex min-h-screen flex-col items-center justify-center px-6 text-center"
-      >
-        <p className="mb-3 text-sm uppercase tracking-widest text-muted-foreground">{APP_NAME}</p>
-        <h1 className="mb-4 max-w-2xl text-4xl font-bold tracking-tight text-foreground sm:text-5xl">
-          A DeepSpace app with a static front door
-        </h1>
-        <p className="mb-8 max-w-md text-muted-foreground">
-          This landing page ships no auth call and no realtime connection — it's a
-          plain static page. The live app, with sign-in and synced data, lives
-          behind the link below.
-        </p>
-        <Link
-          to="/home"
-          className="inline-flex items-center gap-2 rounded-full bg-primary px-5 py-2.5 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-90"
-        >
-          Enter the app
-        </Link>
+      <div data-testid="static-landing" className="min-h-screen bg-background text-foreground">
+        <div className="mx-auto flex min-h-screen max-w-5xl flex-col justify-center px-6 py-20">
+          <p className="mb-6 text-sm font-medium tracking-wide text-primary">{APP_NAME}</p>
+          <h1 className="max-w-3xl text-5xl font-semibold leading-[1.05] tracking-tight sm:text-6xl">
+            Find the creators your audience already watches.
+          </h1>
+          <p className="mt-6 max-w-xl text-lg leading-relaxed text-muted-foreground">
+            Type a topic. Creator Scout searches YouTube, TikTok, and Instagram, scores every creator
+            against what you are promoting, and drafts a pitch that references their real posts.
+          </p>
+          <div className="mt-10 flex flex-wrap items-center gap-4">
+            <Link
+              to="/dashboard"
+              className="inline-flex items-center gap-2 rounded-full bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90"
+            >
+              Open the dashboard
+            </Link>
+            <span className="text-sm text-muted-foreground">Sign in with GitHub or Google.</span>
+          </div>
+          <ol className="mt-20 grid gap-6 border-t border-border pt-10 sm:grid-cols-3">
+            {[
+              ['Search', 'One topic, three platforms, searched in parallel by a background job.'],
+              ['Score', 'Claude rates fit 0–100 against your brief, with a reason that cites their content.'],
+              ['Pitch', 'Move creators through a pipeline and draft outreach you send yourself.'],
+            ].map(([title, body], i) => (
+              <li key={title}>
+                <span className="text-xs tabular-nums text-muted-foreground">0{i + 1}</span>
+                <h2 className="mt-2 font-medium">{title}</h2>
+                <p className="mt-1 text-sm leading-relaxed text-muted-foreground">{body}</p>
+              </li>
+            ))}
+          </ol>
+        </div>
       </div>
     </>
   )

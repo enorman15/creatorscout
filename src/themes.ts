@@ -18,6 +18,11 @@
 
 export const THEMES = [
   {
+    id: 'scout',
+    label: 'Scout',
+    description: 'Creator Scout dark theme with a lime signal accent.',
+  },
+  {
     id: 'slate',
     label: 'Slate',
     description: 'Neutral dark placeholder default. Replace with your own theme.',

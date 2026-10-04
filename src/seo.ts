@@ -24,8 +24,8 @@ import { APP_NAME } from './constants'
 declare const __DEEPSPACE_SITE_ORIGIN__: string | undefined
 
 export const seo = {
-  title: APP_NAME,
-  description: `${APP_NAME} is a real-time collaborative app.`,
+  title: `${APP_NAME} | Find and pitch creators on YouTube, TikTok, Instagram`,
+  description: 'Search YouTube, TikTok, and Instagram for creators on any topic, score their fit with AI, and draft partnership pitches that cite their real posts.',
   /** Public origin for canonical URLs, og:url, and the sitemap — no trailing
    *  slash. Replace with the custom domain once one is attached, e.g.
    *  'https://www.example.com'. */
