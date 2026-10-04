@@ -13,3 +13,4 @@ src/router.ts
 src/modals.tsx
 .claude/launch.json
 .claude/worktrees
+SUBMISSION.md
