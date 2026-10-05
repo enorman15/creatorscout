@@ -12,9 +12,9 @@
  * Platform sources (all verified with live calls before this was written):
  *   youtube    youtube/search-videos → youtube/get-video-details (batched ids)
  *   tiktok     apify clockworks/tiktok-scraper (keyword search)
- *   instagram  apify instagram-scraper (hashtag posts) → instagram-profile-scraper
- *              Instagram's account search only matches usernames, so we find
- *              the content first and then look up who made it.
+ *   instagram  apify memo23/instagram-influencer-search (hashtags → profiles,
+ *              one run). Instagram's own account search only matches
+ *              usernames, so discovery has to start from hashtags.
  */
 
 import { generateText } from 'ai'
@@ -190,62 +190,57 @@ export async function fetchTikTok(env: Env, ctx: JobContext, topic: string): Pro
   return [...byAuthor.values()]
 }
 
-export async function fetchInstagram(env: Env, ctx: JobContext, hashtags: string[]): Promise<Candidate[]> {
+/**
+ * Instagram in ONE Apify run. `memo23/instagram-influencer-search` takes
+ * hashtags and returns the matching creator profiles with follower counts and
+ * median engagement already attached. The first version used two runs
+ * (hashtag posts, then a profile lookup), but each Apify run holds $2 of
+ * credit until it settles, and two holds back-to-back didn't fit a free-tier
+ * balance — one run is also ~3x cheaper ($0.155 for 15 profiles in testing).
+ * Trade-off: this actor returns no per-post rows, so Instagram creators show
+ * their bio and the hashtag they were found under instead of sample posts.
+ */
+export async function fetchInstagram(
+  env: Env,
+  ctx: JobContext,
+  topic: string,
+  hashtags: string[],
+  minFollowers: number,
+): Promise<Candidate[]> {
   const tags = hashtags.slice(0, 3)
-  if (tags.length === 0) return []
-  const posts = await runApify(
-    env,
-    ctx,
-    'apify/instagram-scraper',
-    {
-      directUrls: tags.map((t) => `https://www.instagram.com/explore/tags/${encodeURIComponent(t)}/`),
-      resultsType: 'posts',
-      resultsLimit: 20,
-    },
-    60,
-  )
-
-  const byOwner = new Map<string, { posts: Post[]; score: number }>()
-  for (const p of posts) {
-    const owner = String(p.ownerUsername ?? '').trim()
-    if (!owner) continue
-    const likes = num(p.likesCount) + num(p.commentsCount)
-    const entry = byOwner.get(owner) ?? { posts: [], score: 0 }
-    entry.posts.push({
-      title: String(p.caption ?? '').slice(0, 140),
-      url: p.url ?? `https://www.instagram.com/${owner}/`,
-      views: num(p.videoViewCount ?? p.videoPlayCount),
-      likes,
-    })
-    entry.score += likes
-    byOwner.set(owner, entry)
-  }
-  // Only look up profiles for the most-engaged posters (profile lookups cost).
-  const top = [...byOwner.entries()].sort((a, b) => b[1].score - a[1].score).slice(0, MAX_PER_PLATFORM)
-  if (top.length === 0) return []
-
+  // User-given hashtags when we have them; otherwise the actor's keyword
+  // search on the topic (a hashtag invented from the topic can fail the run).
+  const search = tags.length ? { searchHashtags: tags } : { searchQueries: [topic] }
   const profiles = await runApify(
     env,
     ctx,
-    'apify/instagram-profile-scraper',
-    { usernames: top.map(([u]) => u) },
-    top.length,
+    'memo23/instagram-influencer-search',
+    { ...search, maxProfiles: MAX_PER_PLATFORM, minFollowers: Math.max(minFollowers, 1) },
+    MAX_PER_PLATFORM,
   )
-  const profileBy = new Map(profiles.map((p) => [String(p.username), p]))
-
-  return top.map(([handle, entry]) => {
-    const p = profileBy.get(handle) ?? {}
-    return {
-      platform: 'instagram' as const,
-      handle,
-      name: p.fullName || handle,
-      url: `https://www.instagram.com/${handle}/`,
-      avatarUrl: p.profilePicUrl,
-      bio: p.biography,
-      followers: p.followersCount != null ? num(p.followersCount) : undefined,
-      posts: entry.posts,
-    }
-  })
+  return profiles
+    .filter((p) => p.username && !p.isPrivate)
+    .map((p) => {
+      const tag = p.sourceValue ? String(p.sourceValue) : tags[0] ?? topic
+      return {
+        platform: 'instagram' as const,
+        handle: String(p.username),
+        name: p.fullName || String(p.username),
+        url: p.profileUrl || `https://www.instagram.com/${p.username}/`,
+        bio: p.biography,
+        followers: num(p.followers),
+        // medianEngagementRate is a percentage (0.25 = 0.25%).
+        stats: { avgViews: Math.round(num(p.medianViews)), engagement: num(p.medianEngagementRate) / 100 },
+        posts: [
+          {
+            title: `Found via ${p.source === 'hashtag' ? '#' : 'search: '}${tag} · ${num(p.posts).toLocaleString('en-US')} posts total`,
+            url: p.source === 'hashtag' ? `https://www.instagram.com/explore/tags/${encodeURIComponent(tag)}/` : p.profileUrl || `https://www.instagram.com/${p.username}/`,
+            views: 0,
+            likes: 0,
+          },
+        ],
+      }
+    })
 }
 
 // ── metrics + scoring ───────────────────────────────────────────────────────

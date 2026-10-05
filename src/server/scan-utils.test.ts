@@ -25,6 +25,10 @@ describe('metrics', () => {
     expect(m.engagement).toBeCloseTo(200 / 4000)
   })
 
+  it('uses source-provided stats when present (Instagram medians)', () => {
+    expect(metrics(creator({ stats: { avgViews: 1341, engagement: 0.005 } }))).toEqual({ avgViews: 1341, engagement: 0.005 })
+  })
+
   it('returns zeros when nothing has views', () => {
     expect(metrics(creator({ posts: [{ title: 'x', url: '', views: 0, likes: 5 }] }))).toEqual({ avgViews: 0, engagement: 0 })
   })
@@ -53,12 +57,13 @@ describe('shortlist', () => {
 })
 
 describe('toHashtags', () => {
-  it('cleans user tags, adds the topic, dedupes, and caps at three', () => {
-    expect(toHashtags('AI Coding', ['#CursorAI', 'claude-code', 'cursorai', 'x'])).toEqual(['cursorai', 'claudecode', 'aicoding'])
+  it('cleans user tags, dedupes, and caps at three', () => {
+    expect(toHashtags(['#CursorAI', 'claude-code', 'cursorai', 'x', 'vibecoding', 'agents'])).toEqual(['cursorai', 'claudecode', 'vibecoding'])
   })
 
-  it('ignores a non-array extra', () => {
-    expect(toHashtags('Cursor', 'nope')).toEqual(['cursor'])
+  it('never invents a tag from the topic, and ignores a non-array', () => {
+    expect(toHashtags([])).toEqual([])
+    expect(toHashtags('nope')).toEqual([])
   })
 })
 

@@ -22,6 +22,10 @@ Running `npm create deepspace` inside a folder that is already a git repo (mine 
 My first deploy, made just to claim the name, had no GitHub remote, so it permanently set the app's source to DeepSpace. The docs explain this well, but the scaffold's next-steps output and the first deploy don't mention it.
 **Fix:** one line at first deploy: "This claims DeepSpace as the source of truth for this app, permanently."
 
+## 6. A third-party Apify actor fails silently on a bad input
+`memo23/instagram-influencer-search` returned `FAILED` with no `statusMessage` when one of three hashtags didn't exist on Instagram. Two real tags worked; adding the invented one failed the whole run. I found it by reproducing the exact input from the CLI.
+**Fix:** surface the actor's run log (or its last error line) through `apify/get-run` so failures can be diagnosed without guessing.
+
 ## Things that worked well
 - The `integrations invoke` CLI made de-risking every data source possible before writing any app code.
 - Refusals carry stable codes and real messages. The rename warning even told me which two places still held the old name.

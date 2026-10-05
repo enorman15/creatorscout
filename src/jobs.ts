@@ -74,7 +74,7 @@ export async function runJob(job: Job, ctx: JobContext, env: Env): Promise<unkno
   const sources: Record<Platform, () => Promise<Candidate[]>> = {
     youtube: () => fetchYouTube(env, ctx, scout.topic),
     tiktok: () => fetchTikTok(env, ctx, scout.topic),
-    instagram: () => fetchInstagram(env, ctx, scout.hashtags ?? []),
+    instagram: () => fetchInstagram(env, ctx, scout.topic, scout.hashtags ?? [], scout.minFollowers ?? 0),
   }
 
   const runPlatform = async (p: Platform): Promise<Candidate[]> => {
@@ -93,9 +93,9 @@ export async function runJob(job: Job, ctx: JobContext, env: Env): Promise<unkno
   }
 
   // YouTube runs alongside the Apify platforms, but TikTok and Instagram run
-  // one after the other: each Apify run reserves its spend cap up front, and
-  // two concurrent reservations were refused with insufficient_credits on a
-  // free-tier balance during testing.
+  // one after the other: each Apify run holds $2 of credit until it settles
+  // (minutes later), and two concurrent holds were refused with
+  // insufficient_credits on a free-tier balance during testing.
   const apifyChain = async () => {
     const out: Candidate[] = []
     for (const p of scout.platforms.filter((x) => x !== 'youtube')) out.push(...(await runPlatform(p)))

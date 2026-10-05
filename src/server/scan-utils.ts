@@ -21,11 +21,15 @@ export interface Candidate {
   bio?: string
   followers?: number
   posts: Post[]
+  /** Precomputed reach from the source (Instagram's actor returns medians,
+   *  not per-post rows); when present it wins over the per-post math. */
+  stats?: { avgViews: number; engagement: number }
 }
 
 export const MAX_PER_PLATFORM = 15
 
 export function metrics(c: Candidate): { avgViews: number; engagement: number } {
+  if (c.stats) return c.stats
   const withViews = c.posts.filter((p) => p.views > 0)
   const views = withViews.reduce((s, p) => s + p.views, 0)
   const likes = withViews.reduce((s, p) => s + p.likes, 0)
@@ -53,11 +57,16 @@ export function shortlist(cands: Candidate[], minFollowers: number, max = MAX_PE
     .slice(0, max)
 }
 
-/** "AI coding agents" → ["aicodingagents"]; user tags are cleaned the same way. Max 3. */
-export function toHashtags(topic: string, extra: unknown): string[] {
+/**
+ * Clean the user's Instagram hashtags ("#CursorAI", "claude-code" →
+ * "cursorai", "claudecode"), dedupe, cap at three. The topic is NOT turned
+ * into a hashtag: a made-up tag like "cursoraicoding" doesn't exist on
+ * Instagram and made the whole Apify run fail in testing. With no tags, the
+ * scan uses the actor's keyword search on the topic instead.
+ */
+export function toHashtags(extra: unknown): string[] {
   const clean = (s: string) => s.toLowerCase().replace(/^#/, '').replace(/[^a-z0-9_]/g, '')
-  const fromUser = Array.isArray(extra) ? extra.map((t) => clean(String(t))) : []
-  const tags = [...fromUser, clean(topic)].filter((t) => t.length >= 2)
+  const tags = (Array.isArray(extra) ? extra.map((t) => clean(String(t))) : []).filter((t) => t.length >= 2)
   return [...new Set(tags)].slice(0, 3)
 }
 

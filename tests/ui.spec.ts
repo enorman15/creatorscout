@@ -14,6 +14,9 @@ test('table, filters, pipeline board, and creator panel work on saved creators',
   await page.goto('/dashboard')
   await expect(page.locator('tbody tr').first()).toBeVisible({ timeout: 30_000 })
   await page.screenshot({ path: 'test-results/ui-table.png' })
+  await page.getByRole('button', { name: /^Instagram/ }).click()
+  await page.screenshot({ path: 'test-results/ui-instagram.png' })
+  await page.getByRole('button', { name: /^All/ }).click()
 
   // Platform filter narrows the table to one platform.
   await page.getByRole('button', { name: /^TikTok/ }).click()

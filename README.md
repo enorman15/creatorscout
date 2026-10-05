@@ -29,7 +29,7 @@ Find the creators your audience already watches. Type a topic, and Creator Scout
 |---|---|
 | `youtube/search-videos`, `youtube/get-video-details` | Topic videos, then view/like stats. One details call takes up to 50 comma-separated ids |
 | `apify` → `clockworks/tiktok-scraper` | TikTok keyword search with author follower counts |
-| `apify` → `apify/instagram-scraper` then `apify/instagram-profile-scraper` | Instagram top posts per hashtag, then profiles of the most-engaged posters. Instagram's account search only matches usernames, so content comes first |
+| `apify` → `memo23/instagram-influencer-search` | Instagram creators from hashtags in one run, with follower counts and median engagement. It replaced a two-run version (hashtag posts → profile lookup) because each Apify run holds $2 until it settles, and it's ~3x cheaper |
 | `anthropic` (via `createDeepSpaceAI`) | Batch fit scoring (Haiku 4.5) and pitch drafting (Sonnet 5) |
 
 **Left out on purpose:** X/Twitter (`twitterapi` returned an upstream "credits not enough" error on every call while building), email sending (outreach stays in the user's own inbox), LinkedIn (the catalog endpoint is a scoped Google search, not creator data), and scheduled re-scans (useful, but not needed to prove the core path).
@@ -48,7 +48,7 @@ npx deepspace auth login
 npx deepspace dev start          # http://localhost:5173
 npx vitest run                   # unit tests: scoring math, shortlist, hashtags, error text
 npx deepspace test run e2e --grep "table, filters"   # UI on saved data (~$0.01)
-npx deepspace test run e2e --grep "scout finds"      # full real scan (~$0.50, needs a credit balance above $4)
+npx deepspace test run e2e --grep "scout finds"      # full real scan (~$0.25)
 npx deepspace deploy
 ```
 
@@ -58,5 +58,6 @@ The e2e specs use DeepSpace test accounts (`npx deepspace test accounts create`)
 
 - YouTube's catalog endpoints expose no subscriber count, so YouTube rows show topic views, not followers.
 - Instagram hashtag pages return recent posts, not top posts, so results skew small. The follower floor and Claude's score filter most of that out.
-- Apify holds $2 per run until it settles a few minutes later, so a low free-tier balance can block Instagram's second step. See `FRICTION.md`.
+- Apify holds $2 per run until it settles a few minutes later, so TikTok and Instagram run one after the other. See `FRICTION.md`.
+- Instagram's one-run source returns profile stats but no per-post rows, so Instagram creators show bio and hashtag, not sample posts.
 - Next: weekly re-scans with a "new this week" view, CSV export, and sending pitches through the user's Gmail via the Google integration.

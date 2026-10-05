@@ -45,7 +45,7 @@ const startScout: ActionHandler<Env> = async ({ userId, params, tools, env }) =>
     topic,
     brief,
     platforms,
-    hashtags: toHashtags(topic, params.hashtags),
+    hashtags: toHashtags(params.hashtags),
     minFollowers,
     day,
     status: 'queued',

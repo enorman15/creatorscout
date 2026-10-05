@@ -91,7 +91,7 @@ export function NewScoutDialog({ open, onClose }: { open: boolean; onClose: () =
               <div className="space-y-1.5">
                 <Label htmlFor="tags">Instagram hashtags</Label>
                 <Input id="tags" placeholder="cursorai claudecode" value={hashtags} onChange={(e) => setHashtags(e.target.value)} />
-                <p className="text-xs text-muted-foreground">Optional. Topic is used too.</p>
+                <p className="text-xs text-muted-foreground">Optional. Without tags, Instagram searches the topic.</p>
               </div>
             </div>
           </div>
