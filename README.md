@@ -4,6 +4,8 @@ Find the creators your audience already watches. Type a topic, and Creator Scout
 
 **Live:** https://creatorscout.app.space · Built on the [DeepSpace SDK](https://docs.deep.space)
 
+![Dashboard: creators from YouTube, TikTok, and Instagram scored for fit](docs/ui-table.jpg)
+
 ## What it does
 
 1. **New scout.** Topic, a one-line brief of what you are promoting, platforms, a follower floor, and optional Instagram hashtags.
@@ -11,6 +13,14 @@ Find the creators your audience already watches. Type a topic, and Creator Scout
 3. **AI fit score.** Claude rates each shortlisted creator 0–100 against the brief, with a one-sentence reason that cites their content.
 4. **Dashboard.** One table across all three platforms (filter, sort), a drag-and-drop pipeline (New → Shortlisted → Contacted → Passed), and live stat tiles.
 5. **Pitch.** Claude drafts a short outreach message that references one of the creator's actual posts. You send it yourself.
+
+### Screens
+
+| Pipeline board | Creator panel with a drafted pitch |
+|---|---|
+| ![Pipeline](docs/ui-board.jpg) | ![Creator panel](docs/ui-panel.jpg) |
+
+Instagram results, where Claude's scores show hashtag discovery is noisier than YouTube's: ![Instagram](docs/ui-instagram.jpg)
 
 ## How it is built
 
