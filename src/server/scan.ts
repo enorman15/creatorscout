@@ -35,6 +35,12 @@ export interface ScoredCreator extends Candidate {
 }
 
 const SCORE_MODEL = 'claude-haiku-4-5'
+// Apify bills per result, and DeepSpace bills Apify at roughly 3.7x the
+// actor's own price. Measured per full scan: TikTok 40 videos $0.24,
+// Instagram 15 profiles $0.58. These sizes cut a scan from ~$0.87 to ~$0.55;
+// the dropped creators were the low-reach tail Claude ranked last anyway.
+const TIKTOK_VIDEOS = 20
+const INSTAGRAM_PROFILES = 10
 // Keep the Claude batch and the written rows bounded no matter what comes back.
 // Apify bills per event; this is a ceiling the run can't exceed, not the
 // expected cost (test runs cost $0.02–0.04). TikTok's actor refuses < $0.50.
@@ -161,8 +167,8 @@ export async function fetchTikTok(env: Env, ctx: JobContext, topic: string): Pro
     env,
     ctx,
     'clockworks/tiktok-scraper',
-    { searchQueries: [topic], resultsPerPage: 40 },
-    40,
+    { searchQueries: [topic], resultsPerPage: TIKTOK_VIDEOS },
+    TIKTOK_VIDEOS,
   )
   const byAuthor = new Map<string, Candidate>()
   for (const it of items) {
@@ -215,8 +221,8 @@ export async function fetchInstagram(
     env,
     ctx,
     'memo23/instagram-influencer-search',
-    { ...search, maxProfiles: MAX_PER_PLATFORM, minFollowers: Math.max(minFollowers, 1) },
-    MAX_PER_PLATFORM,
+    { ...search, maxProfiles: INSTAGRAM_PROFILES, minFollowers: Math.max(minFollowers, 1) },
+    INSTAGRAM_PROFILES,
   )
   return profiles
     .filter((p) => p.username && !p.isPrivate)

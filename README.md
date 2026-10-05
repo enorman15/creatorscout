@@ -48,7 +48,7 @@ npx deepspace auth login
 npx deepspace dev start          # http://localhost:5173
 npx vitest run                   # unit tests: scoring math, shortlist, hashtags, error text
 npx deepspace test run e2e --grep "table, filters"   # UI on saved data (~$0.01)
-npx deepspace test run e2e --grep "scout finds"      # full real scan (~$0.25)
+npx deepspace test run e2e --grep "scout finds"      # full real scan (~$0.55 per scan: TikTok ~$0.12, Instagram ~$0.39, YouTube + Claude ~$0.04)
 npx deepspace deploy
 ```
 
