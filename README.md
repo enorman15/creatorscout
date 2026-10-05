@@ -40,7 +40,7 @@ Instagram results, where Claude's scores show hashtag discovery is noisier than 
 | `youtube/search-videos`, `youtube/get-video-details` | Topic videos, then view/like stats. One details call takes up to 50 comma-separated ids |
 | `apify` → `clockworks/tiktok-scraper` | TikTok keyword search with author follower counts |
 | `apify` → `memo23/instagram-influencer-search` | Instagram creators from hashtags in one run, with follower counts and median engagement. It replaced a two-run version (hashtag posts → profile lookup) because each Apify run holds $2 until it settles, and it's ~3x cheaper |
-| `anthropic` (via `createDeepSpaceAI`) | Batch fit scoring (Haiku 4.5) and pitch drafting (Sonnet 5) |
+| `anthropic` (via `createDeepSpaceAI`) | Fit scoring and pitch drafting (Sonnet 5). Haiku scored big on-topic channels like Fireship at 12 on a real scout, so scoring moved to Sonnet (+$0.05/scan) |
 
 **Left out on purpose:** X/Twitter (`twitterapi` returned an upstream "credits not enough" error on every call while building), email sending (outreach stays in the user's own inbox), LinkedIn (the catalog endpoint is a scoped Google search, not creator data), and scheduled re-scans (useful, but not needed to prove the core path).
 

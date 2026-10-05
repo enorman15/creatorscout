@@ -22,7 +22,7 @@ import { apiWorkerFetch, createDeepSpaceAI } from 'deepspace/worker'
 import type { JobContext } from 'deepspace/worker'
 import type { Env } from '../../worker'
 
-import { MAX_PER_PLATFORM, metrics, parseJsonArray, type Candidate, type Platform, type Post } from './scan-utils'
+import { MAX_PER_PLATFORM, cleanPitch, metrics, parseJsonArray, type Candidate, type Platform, type Post } from './scan-utils'
 
 export type { Candidate, Platform, Post }
 export { shortlist } from './scan-utils'
@@ -34,7 +34,11 @@ export interface ScoredCreator extends Candidate {
   fitReason: string
 }
 
-const SCORE_MODEL = 'claude-haiku-4-5'
+// Sonnet, not Haiku: on a real "vibe coding" scout Haiku scored Fireship 12
+// and Matthew Berman 10 because one title didn't prove the brief's format.
+// Same rubric on Sonnet: 85 and 72, with brand/aggregator accounts still low.
+// Costs ~$0.05 more per scan.
+const SCORE_MODEL = 'claude-sonnet-5'
 // Apify bills per result, and DeepSpace bills Apify at roughly 3.7x the
 // actor's own price. Measured per full scan: TikTok 40 videos $0.24,
 // Instagram 15 profiles $0.58. These sizes cut a scan from ~$0.87 to ~$0.55;
@@ -282,15 +286,22 @@ export async function scoreCreators(
   const { text } = await generateText({
     model: ai(SCORE_MODEL),
     system: [
-      'You score social media creators as partnership candidates for a brand.',
-      'Score 0-100 on fit: how directly their recent content matches the topic and brief,',
-      'whether their audience is the people the brief wants to reach, and real engagement',
-      '(not just size). Off-topic, spammy, or referral-link-only accounts score under 20.',
+      'You rate social media creators as partnership candidates for a brand.',
+      'Judge the CREATOR, not the single post: the posts listed are a small sample found by a topic search,',
+      'so infer what they usually make from the titles, bio, and reach.',
+      'Score 0-100 using these bands:',
+      '80-100: regularly makes content on this exact topic and their audience is the people the brief wants to reach.',
+      '50-79: closely related content or a clearly matching audience; a credible partner even if not every detail matches.',
+      '20-49: loosely related, or generic news/aggregator pages that only mention the topic.',
+      '0-19: off-topic, spam, referral-link-only, or a brand/company account rather than an independent creator.',
+      "Treat specifics in the brief (format, style, 'on camera') as a bonus, never a requirement: a title cannot show",
+      'format, so missing evidence is not a reason to score lower. Score on topic match, audience match, and reach.',
       'Reply with ONLY a JSON array: [{"id": number, "score": number, "reason": string}].',
-      'Each reason is one specific sentence citing their actual content.',
+      'Each reason is one plain sentence citing their actual content. Never use em dashes or en dashes.',
     ].join(' '),
     prompt: `Topic: ${topic}\nBrief: ${brief || '(none given)'}\n\nCreators:\n${JSON.stringify(rows)}`,
-    maxOutputTokens: 4000,
+    // Room for Sonnet's adaptive thinking plus ~45 one-sentence reasons.
+    maxOutputTokens: 10000,
     abortSignal: ctx.signal,
   })
 
@@ -301,7 +312,7 @@ export async function scoreCreators(
       ...c,
       ...metrics(c),
       fitScore: r ? Math.max(0, Math.min(100, Math.round(num(r.score)))) : 50,
-      fitReason: r?.reason ? String(r.reason) : 'Not scored — the model returned no rating for this creator.',
+      fitReason: r?.reason ? cleanPitch(String(r.reason)) : 'Not scored — the model returned no rating for this creator.',
     }
   })
 }
