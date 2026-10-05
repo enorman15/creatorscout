@@ -40,9 +40,9 @@ export default function Landing() {
               to="/dashboard"
               className="inline-flex items-center gap-2 rounded-full bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90"
             >
-              Open the dashboard
+              Sign in to get started
             </Link>
-            <span className="text-sm text-muted-foreground">Sign in with GitHub or Google.</span>
+            <span className="text-sm text-muted-foreground">GitHub or Google. Already signed in? This opens your dashboard.</span>
           </div>
           <ol className="mt-20 grid gap-6 border-t border-border pt-10 sm:grid-cols-3">
             {[

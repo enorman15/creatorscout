@@ -7,7 +7,7 @@
  */
 
 import { useMemo, useState } from 'react'
-import { useJobs, useMutations, useQuery, type RecordData } from 'deepspace'
+import { useJobs, useMutations, useQuery, useUser, type RecordData } from 'deepspace'
 import { Plus, LayoutList, Columns3 } from 'lucide-react'
 import { Button, EmptyState, cn } from '@/components/ui'
 import { SCOPE_ID } from '../../../constants'
@@ -30,8 +30,13 @@ type SortKey = 'fitScore' | 'followers' | 'avgViews' | 'engagement'
 const DAILY_LIMIT = 5
 
 export default function DashboardPage() {
-  const { records: scouts } = useQuery<Scout>('scouts', { orderBy: 'createdAt', orderDir: 'desc' })
-  const { records: creators, status } = useQuery<Creator>('creators')
+  // RBAC already limits members to their own rows, but the app owner is an
+  // admin and can read every user's rows. The dashboard is personal, so it
+  // always filters to the signed-in user, admin or not.
+  const { user } = useUser()
+  const mine = { userId: user?.id ?? '__none__' }
+  const { records: scouts } = useQuery<Scout>('scouts', { where: mine, orderBy: 'createdAt', orderDir: 'desc' })
+  const { records: creators, status } = useQuery<Creator>('creators', { where: mine })
   const [newOpen, setNewOpen] = useState(false)
   const [openId, setOpenId] = useState<string | null>(null)
   const [scoutFilter, setScoutFilter] = useState<string>('all')
