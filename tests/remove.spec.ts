@@ -14,7 +14,7 @@ test('remove scout clears it without resetting the daily count', async ({ users 
   const todayTile = page.getByText(/^\d+ \/ 5$/)
   const usedBefore = await todayTile.innerText()
 
-  await cards.last().getByRole('button', { name: 'Remove' }).click()
+  await cards.last().getByRole('button', { name: /^Remove scout/ }).click()
   await page.getByRole('button', { name: 'Remove', exact: true }).last().click()
   await expect(page.getByText('Scout removed')).toBeVisible({ timeout: 20_000 })
   await expect(cards).toHaveCount(before - 1)

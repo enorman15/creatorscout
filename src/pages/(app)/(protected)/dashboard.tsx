@@ -8,7 +8,7 @@
 
 import { useMemo, useState } from 'react'
 import { useJobs, useMutations, useQuery, useUser, type RecordData } from 'deepspace'
-import { Plus, LayoutList, Columns3 } from 'lucide-react'
+import { Plus, LayoutList, Columns3, Trash2 } from 'lucide-react'
 import { Button, ConfirmModal, EmptyState, cn, useToast } from '@/components/ui'
 import { SCOPE_ID } from '../../../constants'
 import { CreatorPanel } from '../../../components/scout/CreatorPanel'
@@ -229,8 +229,32 @@ function ScoutStrip({ scouts, selected, onSelect }: { scouts: RecordData<Scout>[
             >
               <div className="flex items-center justify-between gap-2">
                 <span className="truncate font-medium">{s.data.topic}</span>
-                <span className={cn('shrink-0 text-[11px]', s.data.status === 'failed' ? 'text-destructive' : running ? 'text-primary' : 'text-muted-foreground')}>
-                  {s.data.status}
+                <span className="flex shrink-0 items-center gap-2">
+                  <span className={cn('text-[11px]', s.data.status === 'failed' ? 'text-destructive' : running ? 'text-primary' : 'text-muted-foreground')}>
+                    {s.data.status}
+                  </span>
+                  {!running && (
+                    <span
+                      role="button"
+                      tabIndex={0}
+                      aria-label={`Remove scout ${s.data.topic}`}
+                      title="Remove scout"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setRemoving(s)
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault()
+                          e.stopPropagation()
+                          setRemoving(s)
+                        }
+                      }}
+                      className="rounded-md p-1 text-muted-foreground hover:bg-destructive/15 hover:text-destructive"
+                    >
+                      <Trash2 className="size-3.5" />
+                    </span>
+                  )}
                 </span>
               </div>
               {running ? (
@@ -245,26 +269,6 @@ function ScoutStrip({ scouts, selected, onSelect }: { scouts: RecordData<Scout>[
                   {total} creators ·{' '}
                   {s.data.platforms.map((p) => `${PLATFORM_LABEL[p]} ${s.data.counts?.[p] ?? 0}`).join(' · ')}
                 </p>
-              )}
-              {!running && (
-                <span
-                  role="button"
-                  tabIndex={0}
-                  onClick={(e) => {
-                    e.stopPropagation()
-                    setRemoving(s)
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' || e.key === ' ') {
-                      e.preventDefault()
-                      e.stopPropagation()
-                      setRemoving(s)
-                    }
-                  }}
-                  className="mt-2 inline-block text-xs text-muted-foreground hover:text-destructive"
-                >
-                  Remove
-                </span>
               )}
               {warnings.length > 0 && (
                 <p className="mt-1 truncate text-xs text-amber-400" title={warnings.map(([p, w]) => `${p}: ${w}`).join('\n')}>
