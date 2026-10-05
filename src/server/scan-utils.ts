@@ -95,3 +95,58 @@ export function parseJsonArray(text: string): any[] {
     return []
   }
 }
+
+// ── pitch hygiene ───────────────────────────────────────────────────────────
+
+/**
+ * Phrases that make outreach read as machine-written. Shared with the
+ * resume checker's list, plus outreach clichés. Matched case-insensitively
+ * on word boundaries.
+ */
+export const BANNED_PHRASES = [
+  // generic AI/corporate tells
+  'leverage', 'leveraged', 'leveraging', 'utilize', 'synergy', 'seamless', 'seamlessly', 'robust',
+  'cutting-edge', 'cutting edge', 'game-changer', 'game changer', 'game-changing', 'unlock', 'unlocking',
+  'empower', 'elevate', 'holistic', 'ecosystem', 'innovative', 'transformative', 'revolutionize',
+  'revolutionary', 'world-class', 'best-in-class', 'delve', 'dive into', 'deep dive', 'tapestry',
+  'testament', 'resonate', 'resonates', 'at the intersection of', 'navigate the', 'landscape',
+  'in today\'s', 'fast-paced', 'supercharge', 'next level', 'next-level', 'harness',
+  // outreach clichés
+  'i hope this finds you well', 'hope you\'re doing well', 'hope you are doing well', 'i came across',
+  'came across your', 'i stumbled upon', 'big fan', 'huge fan', 'love your content', 'i\'d love to',
+  'i would love to', 'excited to', 'thrilled', 'reach out', 'reaching out', 'touch base', 'circle back',
+  'quick question', 'no pressure', 'just wanted to', 'perfect fit', 'amazing', 'incredible', 'awesome',
+  'mutually beneficial', 'win-win', 'collaboration opportunity', 'partnership opportunity',
+]
+
+/** Banned phrases present in `text` (lowercased, deduped). */
+export function slopHits(text: string): string[] {
+  const low = text.toLowerCase().replace(/[’‘]/g, "'")
+  return BANNED_PHRASES.filter((p) => {
+    const escaped = p.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+    return new RegExp(`(^|[^a-z])${escaped}([^a-z]|$)`).test(low)
+  })
+}
+
+/**
+ * Deterministic cleanup that runs on every pitch, whatever the model did:
+ * no em/en dashes, no exclamation points, no "Subject:" line, no wrapping
+ * quotes, straight apostrophes, single spaces.
+ */
+export function cleanPitch(text: string): string {
+  return text
+    .replace(/^\s*subject:.*\n+/i, '')
+    .replace(/\s*[—–]\s*/g, ', ') // em/en dash used as punctuation → comma
+    .replace(/,\s*,/g, ',')
+    .replace(/,(\s*[.?])/g, '$1')
+    .replace(/!+/g, '.')
+    .replace(/[“”]/g, '"')
+    .replace(/[’‘]/g, "'")
+    .replace(/…/g, '...')
+    .replace(/[ \t]{2,}/g, ' ')
+    .replace(/[ \t]+\n/g, '\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim()
+    .replace(/^"([\s\S]*)"$/, '$1')
+    .trim()
+}

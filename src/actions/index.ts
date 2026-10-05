@@ -12,7 +12,7 @@ import { generateText } from 'ai'
 import { createDeepSpaceAI, enqueueJob } from 'deepspace/worker'
 import type { ActionHandler } from 'deepspace/worker'
 import type { Env } from '../../worker'
-import { toHashtags } from '../server/scan-utils'
+import { BANNED_PHRASES, cleanPitch, slopHits, toHashtags } from '../server/scan-utils'
 
 export const DAILY_SCOUT_LIMIT = 5
 const PLATFORMS = ['youtube', 'tiktok', 'instagram'] as const
@@ -79,29 +79,44 @@ const draftPitch: ActionHandler<Env> = async ({ userId, params, tools, env }) =>
     .map((p: { title: string; url: string }) => `- ${p.title} (${p.url})`)
     .join('\n')
 
-  const ai = createDeepSpaceAI(env, 'anthropic')
-  const { text } = await generateText({
-    model: ai(PITCH_MODEL),
-    system: [
-      'You write short, specific creator-partnership outreach messages.',
-      'Open by referencing one of their real posts by name. Say plainly what is being offered and why',
-      'their audience is a fit. Under 120 words. No hype words, no emojis, no subject line, no placeholders',
-      'like [Name] — if a detail is unknown, leave it out. End with one clear, low-pressure ask.',
-    ].join(' '),
-    prompt: [
-      `Creator: ${creator.name} (@${creator.handle}) on ${creator.platform}`,
-      creator.bio ? `Bio: ${creator.bio}` : '',
-      `Their recent on-topic posts:\n${posts || '(none captured)'}`,
-      `Topic: ${scout.topic ?? ''}`,
-      `What we're promoting: ${scout.brief || '(not specified)'}`,
-      sender ? `Sender: ${sender}` : '',
-    ]
-      .filter(Boolean)
-      .join('\n'),
-    maxOutputTokens: 600,
-  })
+  const system = [
+    'You write a short creator-partnership DM that sounds like one specific person typed it, not a marketer or an AI.',
+    'Rules:',
+    '1. Open with something specific from one of their real posts, by its topic, in your own words. Never open with a greeting cliche.',
+    '2. Say plainly what is being offered and why their audience fits, in one or two sentences.',
+    '3. End with one direct question that is easy to answer.',
+    '4. 60 to 110 words. Plain sentences. Contractions are fine.',
+    '5. Never use em dashes or en dashes. Use commas or periods instead. No exclamation points, no emojis, no hashtags, no subject line, no sign-off block.',
+    '6. No hype or filler words, for example: ' + BANNED_PHRASES.slice(0, 40).join(', ') + '.',
+    '7. No "not just X, but Y" constructions and no lists of three adjectives.',
+    '8. No placeholders like [Name]. If a detail is unknown, leave it out.',
+    'Return only the message text.',
+  ].join('\n')
 
-  const pitch = text.trim()
+  const prompt = [
+    `Creator: ${creator.name} (@${creator.handle}) on ${creator.platform}`,
+    creator.bio ? `Bio: ${creator.bio}` : '',
+    `Their recent on-topic posts:\n${posts || '(none captured)'}`,
+    `Topic: ${scout.topic ?? ''}`,
+    `What we're promoting: ${scout.brief || '(not specified)'}`,
+    sender ? `Sender: ${sender}` : '',
+  ]
+    .filter(Boolean)
+    .join('\n')
+
+  const ai = createDeepSpaceAI(env, 'anthropic')
+  const write = async (extra = '') =>
+    cleanPitch((await generateText({ model: ai(PITCH_MODEL), system, prompt: prompt + extra, maxOutputTokens: 600 })).text)
+
+  // Rules in the prompt, a deterministic cleanup on every draft, and one
+  // rewrite if any banned phrase still slipped through.
+  let text = await write()
+  const hits = slopHits(text)
+  if (hits.length) {
+    text = await write(`\n\nYour previous draft used these banned phrases: ${hits.join(', ')}. Rewrite it without them:\n${text}`)
+  }
+
+  const pitch = text
   const saved = await tools.update('creators', creatorId, { pitch })
   if (!saved.success) return saved
   return { success: true, data: { pitch } }

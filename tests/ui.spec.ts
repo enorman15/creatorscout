@@ -28,8 +28,14 @@ test('table, filters, pipeline board, and creator panel work on saved creators',
   await page.locator('tbody tr').first().click()
   await expect(page.getByText('Content we found')).toBeVisible()
   await page.getByRole('button', { name: 'Shortlisted', exact: true }).click()
+  const pitchBox = page.locator('p.whitespace-pre-wrap')
+  const before = (await pitchBox.count()) ? await pitchBox.innerText() : ''
   await page.getByRole('button', { name: /Draft pitch|Redraft pitch/ }).click()
-  await expect(page.getByRole('button', { name: /Redraft pitch/ })).toBeVisible({ timeout: 90_000 })
+  // Wait for the NEW draft to land (an older pitch may already be showing).
+  await expect.poll(async () => ((await pitchBox.count()) ? await pitchBox.innerText() : before), { timeout: 90_000 }).not.toBe(before)
+  const pitch = await page.locator('p.whitespace-pre-wrap').innerText()
+  console.log(`[pitch text]\n${pitch}`)
+  expect(pitch).not.toMatch(/[—–!]/)
   await page.screenshot({ path: 'test-results/ui-panel.png' })
   await page.getByRole('button', { name: 'Close' }).first().click()
 

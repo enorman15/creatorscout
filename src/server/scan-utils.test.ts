@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { friendlyError, metrics, parseJsonArray, shortlist, toHashtags, type Candidate } from './scan-utils'
+import { cleanPitch, friendlyError, metrics, parseJsonArray, shortlist, slopHits, toHashtags, type Candidate } from './scan-utils'
 
 const creator = (over: Partial<Candidate>): Candidate => ({
   platform: 'tiktok',
@@ -84,5 +84,30 @@ describe('parseJsonArray', () => {
 
   it('returns [] for malformed output instead of throwing', () => {
     expect(parseJsonArray('[{"id": 0,')).toEqual([])
+  })
+})
+
+describe('cleanPitch', () => {
+  it('removes em and en dashes, exclamation points, and a subject line', () => {
+    expect(cleanPitch('Subject: Hi\n\nYour Cursor video — the one on agents — was sharp! Worth a chat?')).toBe(
+      'Your Cursor video, the one on agents, was sharp. Worth a chat?',
+    )
+    expect(cleanPitch('Short – sweet.')).toBe('Short, sweet.')
+  })
+
+  it('normalizes quotes and whitespace and strips wrapping quotes', () => {
+    expect(cleanPitch('"It’s  a  “real” test"')).toBe('It\'s a "real" test')
+  })
+})
+
+describe('slopHits', () => {
+  it('flags banned phrases regardless of case or curly apostrophes', () => {
+    expect(slopHits('I Came Across your video and I’d love to Reach out.')).toEqual(
+      expect.arrayContaining(['i came across', "i'd love to", 'reach out']),
+    )
+  })
+
+  it('does not flag substrings inside other words', () => {
+    expect(slopHits('We harnessed nothing; the dashboard is plain.')).toEqual([])
   })
 })
