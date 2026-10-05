@@ -6,6 +6,7 @@
  *               and enqueue the `scan` job. The cap lives here — not in the
  *               client — because every scan spends owner-billed credits.
  *   draftPitch  write a partnership pitch for one creator the caller owns.
+ *   removeScout delete a scout's creators and hide the scout (kept for the cap).
  */
 
 import { generateText } from 'ai'
@@ -122,4 +123,28 @@ const draftPitch: ActionHandler<Env> = async ({ userId, params, tools, env }) =>
   return { success: true, data: { pitch } }
 }
 
-export const actions: Record<string, ActionHandler<Env>> = { startScout, draftPitch }
+const removeScout: ActionHandler<Env> = async ({ userId, params, tools }) => {
+  const scoutId = String(params.scoutId ?? '')
+  const got = await tools.get('scouts', scoutId)
+  if (!got.success) return got
+  const scout = (got.data as { record: { data: Record<string, any> } }).record.data
+  if (scout.userId !== userId) return { success: false, error: 'Not found.' }
+  if (['queued', 'scanning', 'scoring'].includes(scout.status)) {
+    return { success: false, error: 'Wait for this scout to finish before removing it.' }
+  }
+
+  // deleteWhere removes at most `limit` rows per call; drain until done.
+  let removed = 0
+  for (;;) {
+    const res = await tools.deleteWhere('creators', { scoutId, userId }, 500)
+    if (!res.success) return res
+    const n = (res.data as { deleted: number }).deleted
+    removed += n
+    if (n < 500) break
+  }
+  const hidden = await tools.update('scouts', scoutId, { archived: true })
+  if (!hidden.success) return hidden
+  return { success: true, data: { removed } }
+}
+
+export const actions: Record<string, ActionHandler<Env>> = { startScout, draftPitch, removeScout }

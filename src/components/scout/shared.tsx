@@ -43,6 +43,7 @@ export interface Scout {
   counts?: Partial<Record<Platform, number>>
   warnings?: Partial<Record<Platform, string>>
   error?: string
+  archived?: boolean
 }
 
 export const PLATFORM_LABEL: Record<Platform, string> = {

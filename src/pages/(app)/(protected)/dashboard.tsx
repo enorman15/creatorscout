@@ -9,7 +9,7 @@
 import { useMemo, useState } from 'react'
 import { useJobs, useMutations, useQuery, useUser, type RecordData } from 'deepspace'
 import { Plus, LayoutList, Columns3 } from 'lucide-react'
-import { Button, EmptyState, cn } from '@/components/ui'
+import { Button, ConfirmModal, EmptyState, cn, useToast } from '@/components/ui'
 import { SCOPE_ID } from '../../../constants'
 import { CreatorPanel } from '../../../components/scout/CreatorPanel'
 import { NewScoutDialog } from '../../../components/scout/NewScoutDialog'
@@ -24,6 +24,7 @@ import {
   type Platform,
   type Scout,
   type Stage,
+  callAction,
 } from '../../../components/scout/shared'
 
 type SortKey = 'fitScore' | 'followers' | 'avgViews' | 'engagement'
@@ -35,7 +36,8 @@ export default function DashboardPage() {
   // always filters to the signed-in user, admin or not.
   const { user } = useUser()
   const mine = { userId: user?.id ?? '__none__' }
-  const { records: scouts } = useQuery<Scout>('scouts', { where: mine, orderBy: 'createdAt', orderDir: 'desc' })
+  const { records: allScouts } = useQuery<Scout>('scouts', { where: mine, orderBy: 'createdAt', orderDir: 'desc' })
+  const scouts = allScouts.filter((s) => !s.data.archived)
   const { records: creators, status } = useQuery<Creator>('creators', { where: mine })
   const [newOpen, setNewOpen] = useState(false)
   const [openId, setOpenId] = useState<string | null>(null)
@@ -65,7 +67,7 @@ export default function DashboardPage() {
   }, [creators, unique, scoutFilter, platform, sort])
 
   const today = new Date().toISOString().slice(0, 10)
-  const usedToday = scouts.filter((s) => s.data.day === today).length
+  const usedToday = allScouts.filter((s) => s.data.day === today).length
   const shortlisted = unique.filter((c) => c.data.stage === 'shortlisted').length
   const contacted = unique.filter((c) => c.data.stage === 'contacted').length
   const scored = unique.filter((c) => c.data.fitScore != null)
@@ -181,6 +183,25 @@ function IconToggle({ active, onClick, label, children }: { active: boolean; onC
 /** Recent scouts with live job progress for the ones still running. */
 function ScoutStrip({ scouts, selected, onSelect }: { scouts: RecordData<Scout>[]; selected: string; onSelect: (id: string) => void }) {
   const { getJob } = useJobs(SCOPE_ID)
+  const toast = useToast()
+  const [removing, setRemoving] = useState<RecordData<Scout> | null>(null)
+  const [busy, setBusy] = useState(false)
+
+  async function confirmRemove() {
+    if (!removing) return
+    setBusy(true)
+    try {
+      const { removed } = await callAction<{ removed: number }>('removeScout', { scoutId: removing.recordId })
+      if (selected === removing.recordId) onSelect('all')
+      toast.success('Scout removed', `${removed} creators cleared.`)
+      setRemoving(null)
+    } catch (err) {
+      toast.error('Could not remove scout', err instanceof Error ? err.message : String(err))
+    } finally {
+      setBusy(false)
+    }
+  }
+
   if (scouts.length === 0) return null
   return (
     <section className="mt-8">
@@ -225,6 +246,26 @@ function ScoutStrip({ scouts, selected, onSelect }: { scouts: RecordData<Scout>[
                   {s.data.platforms.map((p) => `${PLATFORM_LABEL[p]} ${s.data.counts?.[p] ?? 0}`).join(' · ')}
                 </p>
               )}
+              {!running && (
+                <span
+                  role="button"
+                  tabIndex={0}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    setRemoving(s)
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault()
+                      e.stopPropagation()
+                      setRemoving(s)
+                    }
+                  }}
+                  className="mt-2 inline-block text-xs text-muted-foreground hover:text-destructive"
+                >
+                  Remove
+                </span>
+              )}
               {warnings.length > 0 && (
                 <p className="mt-1 truncate text-xs text-amber-400" title={warnings.map(([p, w]) => `${p}: ${w}`).join('\n')}>
                   {warnings.map(([p]) => PLATFORM_LABEL[p as Platform]).join(', ')} failed: {warnings[0][1].slice(0, 80)}
@@ -234,6 +275,15 @@ function ScoutStrip({ scouts, selected, onSelect }: { scouts: RecordData<Scout>[
           )
         })}
       </div>
+      <ConfirmModal
+        open={removing != null}
+        onClose={() => setRemoving(null)}
+        onConfirm={confirmRemove}
+        loading={busy}
+        title="Remove this scout?"
+        description={`Deletes the creators found for "${removing?.data.topic ?? ''}", including their stages and pitches. This can't be undone. It still counts toward today's limit.`}
+        confirmText="Remove"
+      />
     </section>
   )
 }

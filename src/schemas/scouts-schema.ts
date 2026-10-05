@@ -34,11 +34,16 @@ export const scoutsSchema: CollectionSchema = {
     // Per-platform failures that didn't sink the whole scan.
     { name: 'warnings', storage: 'text', interpretation: { kind: 'json' } },
     { name: 'error', storage: 'text', interpretation: 'plain' },
+    // Set by the `removeScout` action. Removed scouts are hidden but kept, so
+    // they still count toward the daily cap (deleting can't buy more scans).
+    { name: 'archived', storage: 'number', interpretation: { kind: 'boolean' }, default: 0 },
   ],
   permissions: {
     '*': { read: false, create: false, update: false, delete: false },
-    viewer: { read: 'own', create: false, update: false, delete: 'own' },
-    member: { read: 'own', create: false, update: false, delete: 'own' },
+    // No client deletes: a deleted scout would stop counting toward the daily
+    // cap. Users remove scouts through the `removeScout` action (soft delete).
+    viewer: { read: 'own', create: false, update: false, delete: false },
+    member: { read: 'own', create: false, update: false, delete: false },
     admin: { read: true, create: false, update: true, delete: true },
   },
 }
