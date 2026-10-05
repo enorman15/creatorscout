@@ -180,6 +180,21 @@ function IconToggle({ active, onClick, label, children }: { active: boolean; onC
   )
 }
 
+/**
+ * Scouts grouped Today / Yesterday / Earlier by their `day` (UTC, the same
+ * day the daily cap counts against), newest first within each group.
+ */
+function groupByDay(scouts: RecordData<Scout>[]): { label: string; items: RecordData<Scout>[] }[] {
+  const day = (offset: number) => new Date(Date.now() - offset * 86_400_000).toISOString().slice(0, 10)
+  const [today, yesterday] = [day(0), day(1)]
+  const groups = [
+    { label: 'Today', items: scouts.filter((s) => s.data.day === today) },
+    { label: 'Yesterday', items: scouts.filter((s) => s.data.day === yesterday) },
+    { label: 'Earlier', items: scouts.filter((s) => s.data.day !== today && s.data.day !== yesterday) },
+  ]
+  return groups.filter((g) => g.items.length > 0)
+}
+
 /** Recent scouts with live job progress for the ones still running. */
 function ScoutStrip({ scouts, selected, onSelect }: { scouts: RecordData<Scout>[]; selected: string; onSelect: (id: string) => void }) {
   const { getJob } = useJobs(SCOPE_ID)
@@ -211,8 +226,11 @@ function ScoutStrip({ scouts, selected, onSelect }: { scouts: RecordData<Scout>[
           <button onClick={() => onSelect('all')} className="text-xs text-muted-foreground hover:text-foreground">Show all</button>
         )}
       </div>
+      {groupByDay(scouts).map((group) => (
+      <div key={group.label} className="mb-4 last:mb-0">
+      <h3 className="mb-2 text-[11px] text-muted-foreground">{group.label}</h3>
       <div className="flex gap-3 overflow-x-auto pb-1">
-        {scouts.slice(0, 12).map((s) => {
+        {group.items.map((s) => {
           const running = ['queued', 'scanning', 'scoring'].includes(s.data.status)
           const job = s.data.jobId ? getJob(s.data.jobId) : undefined
           const total = Object.values(s.data.counts ?? {}).reduce((a, b) => a + (b ?? 0), 0)
@@ -279,6 +297,8 @@ function ScoutStrip({ scouts, selected, onSelect }: { scouts: RecordData<Scout>[
           )
         })}
       </div>
+      </div>
+      ))}
       <ConfirmModal
         open={removing != null}
         onClose={() => setRemoving(null)}
